@@ -1,0 +1,8 @@
+---
+- name: Check ansible version
+  import_playbook: ansible_version.yml
+
+- hosts: k8s-cluster
+  gather_facts: False
+  roles:
+    - role: tuning

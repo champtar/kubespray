@@ -32,6 +32,13 @@
     - { role: "container-engine", tags: "container-engine", when: deploy_container_engine|default(true) }
     - { role: download, tags: download, when: "not skip_downloads" }
 
+- hosts: k8s-cluster
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: False
+  roles:
+    - role: tuning
+      tags: tuning
+
 - hosts: etcd
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"

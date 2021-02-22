@@ -23,6 +23,13 @@
   tags: always
   import_playbook: facts.yml
 
+- hosts: k8s-cluster
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  gather_facts: False
+  roles:
+    - role: tuning
+      tags: tuning
+
 - name: Generate the etcd certificates beforehand
   hosts: etcd
   gather_facts: False

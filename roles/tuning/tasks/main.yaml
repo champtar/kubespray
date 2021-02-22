@@ -1,0 +1,20 @@
+---
+
+- name: Copy /etc/sysctl.d/95-nea-cdn.conf
+  copy:
+    src: sysctl-nea-cdn.conf
+    dest: /etc/sysctl.d/95-nea-cdn.conf
+
+- name: Create /etc/tuned/nea-cdn/
+  file:
+    state: directory
+    path: /etc/tuned/nea-cdn/
+
+- name: Copy NEA-CDN tuned profile
+  copy:
+    src: tuned-nea-cdn.conf
+    dest: /etc/tuned/nea-cdn/tuned.conf
+
+- name: Apply NEA-CDN tuned profile
+  command: tuned-adm profile nea-cdn
+
