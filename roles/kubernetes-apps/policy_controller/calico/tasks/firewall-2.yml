@@ -1,0 +1,108 @@
+# kubecontrollersconfiguration is created by calico when first run
+# so we need to retry as we might be trying too early
+- name: Calico | Configure calico firewall (autoCreate hostEndpoint)
+  command: '{{ bin_dir }}/calicoctl.sh patch kubecontrollersconfiguration default --patch=''{"spec": {"controllers": {"node": {"hostEndpoint": {"autoCreate": "Enabled"}}}}}'''
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  register: result
+  until: result is succeeded
+  retries: 60
+  delay: 5
+  run_once: yes
+  changed_when: False
+
+- name: Calico | Configure calico firewall (GlobalNetworkPolicies)
+  command:
+    cmd: "{{ bin_dir }}/calicoctl.sh apply -f -"
+    stdin: "{{ stdin is string | ternary(stdin, stdin|to_json) }}"
+  vars:
+    stdin: >
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkSet
+        metadata:
+          labels:
+            do-not: edit
+            internal-ips: "true"
+          name: internal-ip4
+        spec:
+          nets:
+            - {{ kube_pods_subnet }}
+            - {{ kube_service_addresses }}
+            - {{ nodelocaldns_ip }}
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkPolicy
+        metadata:
+          name: allow-http-https
+        spec:
+          order: 10
+          preDNAT: true
+          applyOnForward: true
+          ingress:
+          - action: Allow
+            protocol: TCP
+            destination:
+              ports: [80, 443]
+          selector: has(kubernetes.io/hostname)
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkPolicy
+        metadata:
+          name: allow-ssh
+        spec:
+          order: 19
+          preDNAT: true
+          applyOnForward: true
+          ingress:
+          - action: Allow
+            protocol: TCP
+            destination:
+              ports: [22]
+          selector: has(kubernetes.io/hostname)
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkPolicy
+        metadata:
+          name: allow-icmp
+        spec:
+          order: 97
+          preDNAT: true
+          applyOnForward: true
+          ingress:
+            - action: Allow
+              protocol: ICMP
+              icmp:
+                type: 8 # Ping request
+          selector: has(kubernetes.io/hostname)
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkPolicy
+        metadata:
+          name: allow-internal-ingress-else-deny
+        spec:
+          order: 98
+          preDNAT: true
+          applyOnForward: true
+          ingress:
+            - action: Allow
+              destination:
+                nets:
+                  - 127.0.0.0/8
+            - action: Allow
+              source:
+                selector: "has(kubernetes.io/hostname) || internal-ips == 'true'"
+            - action: Deny
+          selector: has(kubernetes.io/hostname)
+      - apiVersion: projectcalico.org/v3
+        kind: GlobalNetworkPolicy
+        metadata:
+          name: allow-outbound-external
+        spec:
+          order: 99
+          egress:
+            - action: Allow
+          selector: has(kubernetes.io/hostname)
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  run_once: yes
+  changed_when: False
+
+- name: Calico | Configure calico firewall (FelixConfiguration failsafe ports)
+  command: '{{ bin_dir }}/calicoctl.sh patch FelixConfiguration default --patch=''{"spec": {"failsafeInboundHostPorts": [{"protocol": "tcp", "port": 22}, {"protocol": "tcp", "port": 68}], "failsafeOutboundHostPorts": [{"protocol": "tcp", "port": 53}, {"protocol": "tcp", "port": 67}]}}'''
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  run_once: yes
+  changed_when: False

@@ -1,0 +1,56 @@
+- name: Check if kubelet exists
+  stat:
+    path: "{{ bin_dir }}/kubelet"
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: kubelet
+
+# If kubelet is not present this is a new node and we can safely stop firewalld
+- name: Disable {{ 'and stop ' if not kubelet.stat.exists }}firewalld {{ '(you now need to reboot)' if kubelet.stat.exists }}
+  systemd:
+    name: firewalld
+    enabled: no
+    masked: yes
+    state: "{{ omit if kubelet.stat.exists else 'stopped' }}"
+  ignore_errors: yes
+
+- name: Check if calicoctl.sh exists
+  stat:
+    path: "{{ bin_dir }}/calicoctl.sh"
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+  register: calicosh
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  delegate_facts: True
+  run_once: yes
+
+# Add all nodes local IPs minus kube_service_addresses / kube_pods_subnet / nodelocaldns_ip
+# as they are already in internal-ip4 GlobalNetworkSet
+# This enable us to allow new nodes before they are added to k8s so they can talk to the API server
+# This also work around an issue when talking to k8s services (so via IPVS) where at some point the source address
+# used for masquerading is the first interface instead of the one found by `ip r get`
+# This will hopefully be improved but for now it works
+- name: Calico | Configure calico firewall (node-ip4-)
+  command:
+    cmd: "{{ bin_dir }}/calicoctl.sh apply -f -"
+    stdin: "{{ stdin is string | ternary(stdin, stdin|to_json) }}"
+  vars:
+    stdin: >
+      { "kind": "GlobalNetworkSet",
+        "apiVersion": "projectcalico.org/v3",
+        "metadata": {
+          "name": "node-ip4-{{ inventory_hostname }}",
+          "labels": {
+            "internal-ips": "true",
+            "do-not": "edit"
+          }
+        },
+        "spec": {
+          "nets": {{ ansible_all_ipv4_addresses | difference(ansible_all_ipv4_addresses | ipaddr(kube_service_addresses) ) | difference(ansible_all_ipv4_addresses | ipaddr(kube_pods_subnet) ) | difference([nodelocaldns_ip])  | unique }}
+        }
+      }
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  when: calicosh.stat.exists
+  changed_when: False

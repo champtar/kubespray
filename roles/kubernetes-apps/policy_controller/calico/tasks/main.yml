@@ -37,3 +37,6 @@
     - not item is skipped
   loop_control:
     label: "{{ item.item.file }}"
+
+- include_tasks: firewall-1.yml
+- include_tasks: firewall-2.yml

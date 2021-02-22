@@ -39,6 +39,18 @@
     - role: tuning
       tags: tuning
 
+- name: Firewall config
+  hosts: k8s-cluster
+  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
+  roles:
+    - { role: kubespray-defaults, when: "kube_network_plugin == 'calico'" }
+  tasks:
+    - name: Calico firewall 1/2
+      include_role:
+        name: kubernetes-apps/policy_controller/calico
+        tasks_from: firewall-1.yml
+      when: kube_network_plugin == 'calico'
+
 - hosts: etcd
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
