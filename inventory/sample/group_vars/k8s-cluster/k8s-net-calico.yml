@@ -66,16 +66,19 @@
 # Set max typha connections
 # typha_max_connections_lower_limit: 300
 
+# To not break your cluster, kubespray will not change IPIP/VXLAN settings, you need to change them before running upgrade-cluster.yml
+# calicoctl.sh patch ipPool default-pool -p '{"spec":{"ipipMode": "Never", "vxlanMode": "CrossSubnet"}}'
+
 # Set calico network backend: "bird", "vxlan" or "none"
 # bird enable BGP routing, required for ipip mode.
-# calico_network_backend: bird
+calico_network_backend: 'vxlan'
 
 # IP in IP and VXLAN is mutualy exclusive modes.
 # set IP in IP encapsulation mode: "Always", "CrossSubnet", "Never"
-# calico_ipip_mode: 'Always'
+calico_ipip_mode: 'Never'
 
 # set VXLAN encapsulation mode: "Always", "CrossSubnet", "Never"
-# calico_vxlan_mode: 'Never'
+calico_vxlan_mode: 'CrossSubnet'
 
 # set VXLAN port and VNI
 # calico_vxlan_vni: 4096
