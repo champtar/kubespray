@@ -212,7 +212,7 @@ kube_api_aggregator_routing: false
 kube_profiling: false
 
 # Container for runtime
-container_manager: docker
+container_manager: containerd
 
 # Enable Kata Containers as additional container runtime
 # When enabled, it requires `container_manager` different than Docker
@@ -294,7 +294,7 @@ containerd_use_systemd_cgroup: false
 
 # Settings for containerized control plane (etcd/kubelet/secrets)
 # deployment type for legacy etcd mode
-etcd_deployment_type: docker
+etcd_deployment_type: host
 cert_management: script
 
 # Make a copy of kubeconfig on the host that runs Ansible in {{ inventory_dir }}/artifacts
