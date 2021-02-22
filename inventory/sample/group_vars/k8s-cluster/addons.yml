@@ -5,6 +5,7 @@
 
 # Helm deployment
 helm_enabled: true
+k9s_enabled: true
 
 # Registry deployment
 registry_enabled: false

@@ -10,6 +10,12 @@ dependencies:
     tags:
       - helm
 
+  - role: kubernetes-apps/k9s
+    when:
+      - k9s_enabled
+    tags:
+      - k9s
+
   - role: kubernetes-apps/registry
     when:
       - registry_enabled

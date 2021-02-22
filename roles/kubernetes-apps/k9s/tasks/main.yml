@@ -1,0 +1,15 @@
+---
+- name: K9S | Download k9s
+  include_tasks: "../../../download/tasks/download_file.yml"
+  vars:
+    download: "{{ download_defaults | combine(downloads.k9s) }}"
+
+- name: Copy k9s binary from download dir
+  synchronize:
+    src: "{{ local_release_dir }}/k9s-{{ k9s_version }}/k9s"
+    dest: "{{ bin_dir }}/k9s"
+    compress: no
+    perms: yes
+    owner: no
+    group: no
+  delegate_to: "{{ inventory_hostname }}"
