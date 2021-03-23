@@ -196,4 +196,4 @@ secrets_encryption_query: "resources[*].providers[0].{{kube_encryption_algorithm
 event_ttl_duration: "1h0m0s"
 
 ## Automatically renew K8S control plane certificates on first Monday of each month
-auto_renew_certificates: false
+auto_renew_certificates: true
